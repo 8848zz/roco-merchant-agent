@@ -6,7 +6,8 @@ from memory import get_history
 SYSTEM_PROMPT = """你是洛可可王国旅行商人的查询助手。你可以使用工具获取数据，然后给出答案。
 
 工具列表：
-- fetch_merchant：获取当前旅行商人的商品信息，无参数。
+- fetch_merchant：获取当前轮次的旅行商人商品信息，无参数。
+- fetch_merchant_all：获取所有轮次的完整商品信息（含过往轮次），无参数。当用户问到过往轮次时使用此工具。
 
 你必须严格按照 JSON 格式输出，每行一个 JSON 对象。格式如下：
 {"type": "thought", "content": "你的思考过程"}

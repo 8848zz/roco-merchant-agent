@@ -1,6 +1,6 @@
 from memory import add_message, print_history
 from react_loop import run_react_agent
-from roco_tool import fetch_merchant
+from roco_tool import fetch_merchant, fetch_merchant_all
 
 
 def main():
@@ -16,7 +16,7 @@ def main():
         if not user_input.strip():
             continue
         add_message("User", user_input)
-        response = run_react_agent(user_input, tools=[fetch_merchant])
+        response = run_react_agent(user_input, tools=[fetch_merchant, fetch_merchant_all])
         print(f"Agent：{response}")
         add_message("Agent", response)
     print_history()
