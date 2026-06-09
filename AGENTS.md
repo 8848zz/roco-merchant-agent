@@ -53,8 +53,8 @@ main.py → react_loop.py (run_react_agent) → llm_client.py → DeepSeek API
 
 - **调度源：** [cron-job.org](https://cron-job.org) 每天 8 次调用 GitHub API 触发 `workflow_dispatch`（08:05/09:05/12:05/13:05/16:05/17:05/20:05/21:05 北京时间）
 - **GitHub Actions**（`.github/workflows/merchant.yml`）仅保留 `workflow_dispatch`，不设 cron
-- **Secrets（GitHub）：** `SERVERCHAN_SENDKEY`（Server酱）+ `GH_PAT`（GitHub PAT，需 `workflow` 权限）
-- **推送脚本：** `scripts/notify_merchant.py`，调用 `roco_tool.fetch_merchant()`（仅当前轮次）
+- **Secrets（GitHub）：** `SERVERCHAN_SENDKEY[_N]`（Server酱，多账号加 `_2`、`_3` 后缀）+ `GH_PAT`（GitHub PAT，需 `workflow` 权限）
+- **推送脚本：** `scripts/notify_merchant.py`，调用 `roco_tool.fetch_merchant()` 并推送至所有 `SERVERCHAN_SENDKEY*` 渠道
 - **爬虫依赖：** `requests`, `beautifulsoup4`, `lxml`
 
 ## 测试验证

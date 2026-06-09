@@ -52,6 +52,26 @@ GitHub Secrets 需要：
 - `SERVERCHAN_SENDKEY` — [Server酱](https://sct.ftqq.com) 的 SendKey
 - `GH_PAT` — GitHub Personal Access Token（权限需勾 `workflow`）
 
+### 扩展到多个微信账号
+
+如需让多个微信同时收到推送：
+
+1. 每个微信各自注册 [Server酱](https://sct.ftqq.com)，绑定微信后拿到独立 SendKey
+2. 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加 secret，命名规则：
+   - `SERVERCHAN_SENDKEY` — 第一个账号（已有）
+   - `SERVERCHAN_SENDKEY_2` — 第二个账号
+   - `SERVERCHAN_SENDKEY_3` — 第三个账号
+   - 以此类推
+3. 在 `.github/workflows/merchant.yml` 的 `env` 块中追加对应的环境变量传递，例如：
+
+   ```yaml
+   env:
+     SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+     SERVERCHAN_SENDKEY_2: ${{ secrets.SERVERCHAN_SENDKEY_2 }}
+   ```
+
+推送脚本 `scripts/notify_merchant.py` 会自动发现所有 `SERVERCHAN_SENDKEY*` 环境变量，逐一发送。
+
 ## 许可证
 
 MIT
