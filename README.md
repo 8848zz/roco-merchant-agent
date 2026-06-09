@@ -7,7 +7,7 @@
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install requests beautifulsoup4 lxml
+    pip install -r requirements.txt
 export DEEPSEEK_API_KEY="sk-..."
 python main.py
 ```
