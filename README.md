@@ -5,13 +5,12 @@
 ## 快速开始
 
 ```bash
-source /home/zyh/project/python3/pythontest1/.venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
+pip install requests beautifulsoup4 lxml
 export DEEPSEEK_API_KEY="sk-..."
-cd /home/zyh/project/python3/pythontest
 python main.py
 ```
-
-依赖：`requests`, `beautifulsoup4`, `lxml`
 
 ## 功能
 
