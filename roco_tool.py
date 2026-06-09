@@ -1,5 +1,4 @@
 import json
-import re
 from datetime import datetime, timezone, timedelta
 
 import requests
@@ -34,6 +33,36 @@ def _current_round():
     return 0, "关闭时段 (00:00-08:00)"
 
 
+def _check_freshness(initial):
+    """返回 True 表示数据是最新的当前轮次，否则 False。"""
+    local_round, _ = _current_round()
+    if local_round == 0:
+        return False
+    if initial.get("status") != "open":
+        return False
+    server_round = initial.get("round")
+    if server_round is not None and server_round != local_round:
+        return False
+    expected_start = f"{_beijing_now().strftime('%Y-%m-%d')} {(local_round - 1) * 4 + 8:02d}:00:00"
+    server_started = initial.get("startedAtBeijing")
+    if server_started and server_started != expected_start:
+        return False
+    return True
+
+
+def _extract_onebiji_item(li):
+    name_el = li.select_one(".shop_name")
+    price_el = li.select_one(".shop_price")
+    limit_el = li.select_one(".gitem em")
+    if not name_el or not price_el:
+        return None
+    return {
+        "name": name_el.get_text(strip=True),
+        "price": price_el.get_text(strip=True).replace("价格：", ""),
+        "limit": limit_el.get_text(strip=True).replace("限购", "") if limit_el else "-",
+    }
+
+
 def _format_item(item):
     name = item.get("name", "未知")
     price = item.get("price", "-")
@@ -63,18 +92,7 @@ def _parse_rocokingdom(html):
     if local_round == 0:
         return f"当前为关闭时段 ({period_str})，商人未营业。"
 
-    server_status = initial.get("status")
-    server_round = initial.get("round")
-    server_started = initial.get("startedAtBeijing")
-
-    if server_status != "open":
-        return None
-
-    if server_round is not None and server_round != local_round:
-        return None
-
-    expected_start = f"{_beijing_now().strftime('%Y-%m-%d')} {(local_round - 1) * 4 + 8:02d}:00:00"
-    if server_started and server_started != expected_start:
+    if not _check_freshness(initial):
         return None
 
     items = initial.get("items", [])
@@ -98,23 +116,16 @@ def _parse_onebiji(html):
         style = li.get("style", "")
         if "display:none" in style:
             continue
-        name_el = li.select_one(".shop_name")
-        price_el = li.select_one(".shop_price")
-        limit_el = li.select_one(".gitem em")
-        if not name_el or not price_el:
-            continue
-        items.append({
-            "name": name_el.get_text(strip=True),
-            "price": price_el.get_text(strip=True).replace("价格：", ""),
-            "limit": limit_el.get_text(strip=True).replace("限购", "") if limit_el else "-",
-        })
+        item = _extract_onebiji_item(li)
+        if item:
+            items.append(item)
 
     if not items:
         return "当前轮次暂无商品数据。"
     lines = [f"当前时段：{period_str}（第 {local_round} 轮）"]
     for item in items:
-        lines.append(f"\n▸ {item['name']}")
-        lines.append(f"  价格：{item['price']} 洛克贝 | 限购：{item['limit']}")
+        lines.append("")
+        lines.append(_format_item(item))
     return "\n".join(lines)
 
 
@@ -148,15 +159,7 @@ def _parse_rocokingdom_all(html):
     initial = data.get("initial", {})
     local_round, _ = _current_round()
 
-    server_round = initial.get("round")
-    server_status = initial.get("status")
-    server_started = initial.get("startedAtBeijing")
-    if server_status != "open":
-        return None
-    if server_round is not None and server_round != local_round:
-        return None
-    expected_start = f"{_beijing_now().strftime('%Y-%m-%d')} {(local_round - 1) * 4 + 8:02d}:00:00"
-    if server_started and server_started != expected_start:
+    if not _check_freshness(initial):
         return None
 
     rounds_data = initial.get("rounds", {})
@@ -185,16 +188,9 @@ def _parse_onebiji_all(html):
     round_items = {1: [], 2: [], 3: [], 4: []}
     for li in soup.select("li.li_show"):
         classes = li.get("class", [])
-        name_el = li.select_one(".shop_name")
-        price_el = li.select_one(".shop_price")
-        limit_el = li.select_one(".gitem em")
-        if not name_el or not price_el:
+        item = _extract_onebiji_item(li)
+        if not item:
             continue
-        item = {
-            "name": name_el.get_text(strip=True),
-            "price": price_el.get_text(strip=True).replace("价格：", ""),
-            "limit": limit_el.get_text(strip=True).replace("限购", "") if limit_el else "-",
-        }
         for r in range(1, 5):
             if f"show_{r}" in classes:
                 round_items[r].append(item)
@@ -205,8 +201,8 @@ def _parse_onebiji_all(html):
         lines.append(f"── 第 {r} 轮 ({ROUND_LABELS[r]}) ──")
         if items:
             for item in items:
-                lines.append(f"\n▸ {item['name']}")
-                lines.append(f"  价格：{item['price']} 洛克贝 | 限购：{item['limit']}")
+                lines.append("")
+                lines.append(_format_item(item))
         else:
             lines.append("  （无商品数据）")
         lines.append("")
@@ -226,8 +222,7 @@ PARSER_MAP_ALL = {
 
 # ─── 公开 API ───
 
-def fetch_merchant():
-    """返回当前轮次商品信息（用于定时推送）。"""
+def _fetch(parser_map):
     for name, url in SOURCES:
         try:
             resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
@@ -235,26 +230,19 @@ def fetch_merchant():
             resp.encoding = resp.apparent_encoding or "utf-8"
         except requests.RequestException:
             continue
-        parser = PARSER_MAP.get(name)
+        parser = parser_map.get(name)
         if parser:
             result = parser(resp.text)
             if result:
                 return result
     return "无法获取商人数据：所有数据源均不可用。"
+
+
+def fetch_merchant():
+    """返回当前轮次商品信息（用于定时推送）。"""
+    return _fetch(PARSER_MAP)
 
 
 def fetch_merchant_all():
     """返回所有轮次完整商品信息（用于手动查询）。"""
-    for name, url in SOURCES:
-        try:
-            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-            resp.raise_for_status()
-            resp.encoding = resp.apparent_encoding or "utf-8"
-        except requests.RequestException:
-            continue
-        parser = PARSER_MAP_ALL.get(name)
-        if parser:
-            result = parser(resp.text)
-            if result:
-                return result
-    return "无法获取商人数据：所有数据源均不可用。"
+    return _fetch(PARSER_MAP_ALL)

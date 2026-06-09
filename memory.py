@@ -10,5 +10,4 @@ def print_history():
     for entry in history:
         print(f"[{entry['role']}] {entry['content']}")
 
-def clear():
-    history.clear()
+

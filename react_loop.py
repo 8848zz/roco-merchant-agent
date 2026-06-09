@@ -2,7 +2,6 @@ import json
 from datetime import datetime, timezone, timedelta
 from config import MAX_STEPS
 from llm_client import chat
-from memory import get_history
 
 SYSTEM_PROMPT = """你是洛可可王国旅行商人的查询助手。你可以使用工具查询数据，也能独立回答一般性问题。
 
