@@ -6,8 +6,7 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from roco_tool import fetch_merchant
 
-TOKEN = os.environ["WX_PUSHER_TOKEN"]
-UID = os.environ["WX_PUSHER_UID"]
+SENDKEY = os.environ["SERVERCHAN_SENDKEY"]
 
 
 def main():
@@ -16,17 +15,15 @@ def main():
         print(f"跳过推送: {result[:50]}")
         return
     resp = requests.post(
-        "https://wxpusher.zjiecode.com/api/send/message",
-        json={
-            "appToken": TOKEN,
-            "content": f"🛒 旅行商人商品更新\n\n{result}",
-            "contentType": 1,
-            "uids": [UID],
+        f"https://sctapi.ftqq.com/{SENDKEY}.send",
+        data={
+            "title": "🛒 旅行商人商品更新",
+            "content": result,
         },
         timeout=10,
     )
     data = resp.json()
-    if data.get("code") != 1000:
+    if data.get("code") != 0:
         print(f"推送失败: {data}")
 
 

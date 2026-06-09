@@ -1,27 +1,36 @@
 import json
+from datetime import datetime, timezone, timedelta
 from config import MAX_STEPS
 from llm_client import chat
 from memory import get_history
 
-SYSTEM_PROMPT = """你是洛可可王国旅行商人的查询助手。你可以使用工具获取数据，然后给出答案。
+SYSTEM_PROMPT = """你是洛可可王国旅行商人的查询助手。你可以使用工具查询数据，也能独立回答一般性问题。
+
+当前北京时间：{now}
 
 工具列表：
 - fetch_merchant：获取所有轮次的完整旅行商人商品信息（含当前和过往所有轮次），无参数。返回的数据包含第1至第4轮的全部商品，每轮有对应的时段标签（如"08:00-12:00"）。
 
-你必须严格按照 JSON 格式输出，每行一个 JSON 对象。格式如下：
+关于商人和商品的问题，请先调用工具获取数据后据实回答。
+关于时间、日期、一般知识等独立问题，可以直接回答，无需调用工具。
+所有商品价格和数量必须严格基于工具返回的数据，不得编造。
+
+你必须严格按照 JSON 格式输出，每行一个 JSON 对象：
 {"type": "thought", "content": "你的思考过程"}
 {"type": "tool_call", "tool": "fetch_merchant", "arguments": {}}
 {"type": "final_answer", "content": "你的最终回答"}
 
-每次只能输出一个 JSON 对象。不要输出其他内容。
-所有回答必须严格基于工具返回的数据，不要编造数据中没有的商品或价格。"""
+每次只能输出一个 JSON 对象。不要输出其他内容。"""
 
 
 def run_react_agent(query, tools, max_steps=MAX_STEPS):
     tool_map = {t.__name__: t for t in tools}
 
+    now = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
+    system_prompt = SYSTEM_PROMPT.replace("{now}", now)
+
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": query},
     ]
 
