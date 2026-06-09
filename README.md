@@ -15,7 +15,7 @@ python main.py
 ## 功能
 
 - **CLI 查询** — 输入自然语言查询商品信息，如"中午卖什么"、"第四轮有什么"
-- **定时推送** — GitHub Actions 每轮首尾推送（08:05/09:05/12:05/13:05/16:05/17:05/20:05/21:05）到微信（Server酱）
+- **定时推送** — cron-job.org 每天 8 次推送（08:05/09:05/12:05/13:05/16:05/17:05/20:05/21:05）到微信（Server酱）
 
 ## 架构
 
@@ -36,9 +36,21 @@ main.py → react_loop.py → llm_client.py → DeepSeek API
 
 ## 定时推送配置
 
-在 GitHub 仓库设置 `Secrets and variables → Actions` 中添加：
+在 [cron-job.org](https://cron-job.org) 创建 8 个任务，每个任务：
 
+| 字段 | 值 |
+|------|-----|
+| URL | `https://api.github.com/repos/8848zz/roco-merchant-agent/actions/workflows/merchant.yml/dispatches` |
+| Method | `POST` |
+| Content-Type | `application/json` |
+| Body | `{"ref":"main"}` |
+| Header | `Authorization: Bearer <GitHub PAT>` |
+
+8 个时间点（时区选 Asia/Shanghai）：08:05 / 09:05 / 12:05 / 13:05 / 16:05 / 17:05 / 20:05 / 21:05
+
+GitHub Secrets 需要：
 - `SERVERCHAN_SENDKEY` — [Server酱](https://sct.ftqq.com) 的 SendKey
+- `GH_PAT` — GitHub Personal Access Token（权限需勾 `workflow`）
 
 ## 许可证
 

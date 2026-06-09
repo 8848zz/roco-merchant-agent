@@ -49,10 +49,11 @@ main.py → react_loop.py (run_react_agent) → llm_client.py → DeepSeek API
 - **时段（北京时间）：** 08:00-12:00 / 12:00-16:00 / 16:00-20:00 / 20:00-24:00（关闭时段 00:00-08:00）
 - **网站结构变更** 可能导致解析失败，需维护 `roco_tool.py`
 
-## 定时推送（Server酱 → 微信）
+## 定时推送（cron-job.org → GitHub Actions → Server酱 → 微信）
 
-- **GitHub Actions**（`.github/workflows/merchant.yml`），cron `5 0,1,4,5,8,9,12,13 * * *`（UTC）= 08:05/09:05/12:05/13:05/16:05/17:05/20:05/21:05 北京 — 每轮首尾各一次
-- **Secrets 名称：** `SERVERCHAN_SENDKEY`
+- **调度源：** [cron-job.org](https://cron-job.org) 每天 8 次调用 GitHub API 触发 `workflow_dispatch`（08:05/09:05/12:05/13:05/16:05/17:05/20:05/21:05 北京时间）
+- **GitHub Actions**（`.github/workflows/merchant.yml`）仅保留 `workflow_dispatch`，不设 cron
+- **Secrets（GitHub）：** `SERVERCHAN_SENDKEY`（Server酱）+ `GH_PAT`（GitHub PAT，需 `workflow` 权限）
 - **推送脚本：** `scripts/notify_merchant.py`，调用 `roco_tool.fetch_merchant()`（仅当前轮次）
 - **爬虫依赖：** `requests`, `beautifulsoup4`, `lxml`
 
