@@ -15,3 +15,4 @@ jobs:
       - run: python scripts/notify_merchant.py
         env:
           SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY_2 }}
